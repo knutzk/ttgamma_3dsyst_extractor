@@ -27,8 +27,19 @@ std::string createHistString(const std::string& str) {
   auto pos = str.find("ph_HFT_MVA_");
   if (pos == std::string::npos) throw std::invalid_argument("");
   auto s = str.substr(pos, str.length() - pos);
-  pos = s.rfind("dilepton_ppt_") + 13;
-  if (pos == std::string::npos) throw std::invalid_argument("");
+
+  auto getPosAfterString = [](const std::string& s, const std::string& ss) {
+    auto pos = s.rfind(ss);
+    if (pos != std::string::npos) return pos + ss.length();
+    else return std::string::npos;
+  };
+
+  pos = getPosAfterString(s, "dilepton_ppt_");
+  if (pos == std::string::npos) {
+    std::cerr << "Could not create histogram string ";
+    std::cerr << "based on "<< str << std::endl;
+    throw std::invalid_argument("");
+  }
   return s.substr(0, pos);
 }
 
