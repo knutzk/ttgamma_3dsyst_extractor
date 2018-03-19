@@ -1,0 +1,1 @@
+setupATLAS&&lsetup root
