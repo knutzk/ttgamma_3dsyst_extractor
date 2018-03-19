@@ -76,11 +76,21 @@ std::unique_ptr<TH1F> prepareDataMCRatio(TFile* file,
 }
 
 //! Initialise the main output object (of class TH3F).
-std::unique_ptr<TH3F> initOutputHist() {
+std::unique_ptr<TH3F> initOutputHist(const std::string& base_name) {
+  std::string hist_name{};
+  if (base_name.find("dilepton") != std::string::npos) {
+    hist_name = "hist_ppt_prompt_3D";
+  } else {
+    hist_name = "hist_ppt_fake_3D";
+  }
   float eta_bins[7] = {0, 0.6, 1.0, 1.37, 1.52, 2.00, 2.37};
   float pt_bins[6] = {0, 27000, 35000, 50000, 80000, 100000};
   float ppt_bins[11] = {0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
-  return std::make_unique<TH3F>("hist", "hist", 6, eta_bins, 5, pt_bins, 10, ppt_bins);
+  return std::make_unique<TH3F>(hist_name.c_str(),
+                                hist_name.c_str(),
+                                6, eta_bins,
+                                5, pt_bins,
+                                10, ppt_bins);
 }
 
 
@@ -120,7 +130,7 @@ int main(int argc, char* argv[]) {
   mc_hists.emplace_back("Other");
 
   auto output_file = TFile::Open("output.root", "RECREATE");
-  auto histogram = initOutputHist();
+  auto histogram = initOutputHist(base_name);
 
   for (unsigned int pt_index = 0; pt_index < pt_slice_strings.size(); ++pt_index) {
     auto pt_slice = pt_slice_strings.at(pt_index);
