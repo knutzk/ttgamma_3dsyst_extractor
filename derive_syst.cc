@@ -130,8 +130,9 @@ int main(int argc, char* argv[]) {
   mc_hists.emplace_back("Other");
 
   auto output_file = TFile::Open("output.root", "RECREATE");
-  auto histogram = initOutput3DHist(base_name);
 
+  // Fill the 3D histogram for systs.
+  auto h_3D = initOutput3DHist(base_name);
   for (unsigned int pt_index = 0; pt_index < pt_slice_strings.size(); ++pt_index) {
     auto pt_slice = pt_slice_strings.at(pt_index);
     for (unsigned int eta_index = 0; eta_index < eta_slice_strings.size(); ++eta_index) {
@@ -158,8 +159,8 @@ int main(int argc, char* argv[]) {
       // store them in the TH3F object that will be saved to the output file.
       output_file->cd();
       for (int x = 1; x <= data_mc_ratio->GetNbinsX(); ++x) {
-        histogram->SetBinContent(eta_index + 1, pt_index + 1, x, data_mc_ratio->GetBinContent(x));
-        histogram->SetBinError(eta_index + 1, pt_index + 1, x, data_mc_ratio->GetBinError(x));
+        h_3D->SetBinContent(eta_index + 1, pt_index + 1, x, data_mc_ratio->GetBinContent(x));
+        h_3D->SetBinError(eta_index + 1, pt_index + 1, x, data_mc_ratio->GetBinError(x));
       }
       file->Close();
     }
@@ -168,10 +169,10 @@ int main(int argc, char* argv[]) {
   output_file->Write();
 
   // Example
-  auto eta_bin = histogram->GetXaxis()->FindBin(1.20);
-  auto pt_bin = histogram->GetYaxis()->FindBin(64213);
-  auto ppt_bin = histogram->GetZaxis()->FindBin(0.78);
-  auto ppt_weight = histogram->GetBinContent(eta_bin, pt_bin, ppt_bin);
+  auto eta_bin = h_3D->GetXaxis()->FindBin(1.20);
+  auto pt_bin = h_3D->GetYaxis()->FindBin(64213);
+  auto ppt_bin = h_3D->GetZaxis()->FindBin(0.78);
+  auto ppt_weight = h_3D->GetBinContent(eta_bin, pt_bin, ppt_bin);
   std::cout << ppt_weight << std::endl;
   return 0;
 }
