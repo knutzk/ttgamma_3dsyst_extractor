@@ -76,7 +76,7 @@ std::unique_ptr<TH1F> prepareDataMCRatio(TFile* file,
 }
 
 //! Initialise the main output object (of class TH3F).
-std::unique_ptr<TH3F> initOutputHist(const std::string& base_name) {
+std::unique_ptr<TH3F> initOutput3DHist(const std::string& base_name) {
   std::string hist_name{};
   if (base_name.find("dilepton") != std::string::npos) {
     hist_name = "hist_ppt_prompt_3D";
@@ -130,7 +130,7 @@ int main(int argc, char* argv[]) {
   mc_hists.emplace_back("Other");
 
   auto output_file = TFile::Open("output.root", "RECREATE");
-  auto histogram = initOutputHist(base_name);
+  auto histogram = initOutput3DHist(base_name);
 
   for (unsigned int pt_index = 0; pt_index < pt_slice_strings.size(); ++pt_index) {
     auto pt_slice = pt_slice_strings.at(pt_index);
