@@ -35,6 +35,7 @@ std::string createHistString(const std::string& str) {
   };
 
   pos = getPosAfterString(s, "dilepton_ppt_");
+  if (pos == std::string::npos) pos = getPosAfterString(s, "singlelepton_ppt_");
   if (pos == std::string::npos) {
     std::cerr << "Could not create histogram string ";
     std::cerr << "based on "<< str << std::endl;
@@ -104,6 +105,38 @@ std::unique_ptr<TH3F> initOutput3DHist(const std::string& base_name) {
                                 10, ppt_bins);
 }
 
+//! Initialise and fill the 1D output object (of class TH1F).
+std::unique_ptr<TH1F> prepare1DHist(const std::string& base_name,
+                                    std::vector<std::string>* mc_hists) {
+  std::string hist_name{};
+  if (base_name.find("dilepton") != std::string::npos) {
+    hist_name = "hist_ppt_prompt_1D";
+  } else {
+    hist_name = "hist_ppt_fake_1D";
+  }
+  float ppt_bins[11] = {0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
+  auto hist = std::make_unique<TH1F>(hist_name.c_str(), hist_name.c_str(), 10, ppt_bins);
+
+  std::cout << "Opening file " << base_name << std::endl;
+  auto file = TFile::Open(base_name.c_str(), "READ");
+
+  // Try creating the data/MC ratio from the opened file. If anything goes
+  // wrong and histograms cannot be found, exit gracefully.
+  std::unique_ptr<TH1F> data_mc_ratio;
+  try {
+    data_mc_ratio = prepareDataMCRatio(file, createHistString(base_name), mc_hists);
+  } catch (std::invalid_argument) {
+    std::cerr << "Retrieving histograms failed ..." << std::endl;
+    return nullptr;
+  }
+  for (int x = 1; x <= data_mc_ratio->GetNbinsX(); ++x) {
+    hist->SetBinContent(x, data_mc_ratio->GetBinContent(x));
+    hist->SetBinError(x, data_mc_ratio->GetBinError(x));
+  }
+  file->Close();
+  return hist;
+}
+
 
 // =========================================================
 // =========================================================
@@ -141,6 +174,11 @@ int main(int argc, char* argv[]) {
   mc_hists.emplace_back("Other");
 
   auto output_file = TFile::Open("output.root", "RECREATE");
+
+  // Fill the 1D histogram for systs.
+  auto h_1D = prepare1DHist(base_name, &mc_hists);
+  if (!h_1D) return 1;
+  output_file->cd();
 
   // Fill the 3D histogram for systs.
   auto h_3D = initOutput3DHist(base_name);
