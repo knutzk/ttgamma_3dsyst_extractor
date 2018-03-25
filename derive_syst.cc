@@ -155,6 +155,7 @@ int main(int argc, char* argv[]) {
   eta_slice_strings.emplace_back("eta0006");
   eta_slice_strings.emplace_back("eta06100");
   eta_slice_strings.emplace_back("eta100137");
+  eta_slice_strings.emplace_back("eta137152");  // this is the crack region
   eta_slice_strings.emplace_back("eta152200");
   eta_slice_strings.emplace_back("eta200inf");
 
