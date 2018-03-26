@@ -50,7 +50,7 @@ int main(int argc, char* argv[]) {
   h_3D->setEtaSlices(&eta_slice_strings);
   h_3D->setPtSlices(&pt_slice_strings);
   try {
-    h_3D->fillFromRatios();
+    h_3D->fillFromRatios(0.5, 2.0);
   } catch (const std::invalid_argument& exc) {
     std::cerr << "Creating 3D histogram failed: " << exc.what() << std::endl;
     return 1;

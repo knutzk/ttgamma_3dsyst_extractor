@@ -66,7 +66,7 @@ class SystHist3D : public TH3F {
   //! Create the data/MC ratios from the input file and all its
   //! derivatives for the different eta/pt slices and fill the 3D
   //! histogram based on these ratios.
-  void fillFromRatios();
+  void fillFromRatios(float lower_limit, float upper_limit);
 
  private:
   //! Path to the main input file. This file name serves as a

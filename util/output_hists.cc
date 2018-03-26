@@ -160,7 +160,7 @@ void SystHist3D::setPtSlices(std::vector<std::string>* strings) {
   pt_slices_ = strings;
 }
 
-void SystHist3D::fillFromRatios() {
+void SystHist3D::fillFromRatios(float lower_limit, float upper_limit) {
   for (unsigned int pt_index = 0; pt_index < pt_slices_->size(); ++pt_index) {
     auto pt_slice = pt_slices_->at(pt_index);
     for (unsigned int eta_index = 0; eta_index < eta_slices_->size(); ++eta_index) {
@@ -180,18 +180,14 @@ void SystHist3D::fillFromRatios() {
       // bin contents and store them in the TH3F object that will
       // be saved to the output file.
       for (int x = 1; x <= data_mc_ratio->GetNbinsX(); ++x) {
-        const float threshold_up{2.};
-        const float threshold_down{0.5};
-        if (data_mc_ratio->GetBinContent(x) > threshold_up) {
-          this->SetBinContent(eta_index + 1, pt_index + 1, x, threshold_up);
-          this->SetBinError(eta_index + 1, pt_index + 1, x, 1.);
-        } else if (data_mc_ratio->GetBinContent(x) < threshold_down) {
-          this->SetBinContent(eta_index + 1, pt_index + 1, x, threshold_down);
-          this->SetBinError(eta_index + 1, pt_index + 1, x, 0.5);
-        } else {
-          this->SetBinContent(eta_index + 1, pt_index + 1, x, data_mc_ratio->GetBinContent(x));
-          this->SetBinError(eta_index + 1, pt_index + 1, x, data_mc_ratio->GetBinError(x));
-        }
+        auto content = data_mc_ratio->GetBinContent(x);
+        auto error = data_mc_ratio->GetBinError(x);
+        content = std::max(content, (double)lower_limit);
+        content = std::min(content, (double)upper_limit);
+        error = std::max(error, 1. - lower_limit);
+        error = std::min(error, upper_limit - 1.);
+        this->SetBinContent(eta_index + 1, pt_index + 1, x, content);
+        this->SetBinError(eta_index + 1, pt_index + 1, x, error);
       }
       file->Close();
     }
