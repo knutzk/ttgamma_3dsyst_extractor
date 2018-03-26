@@ -10,6 +10,7 @@
 #include "TH1F.h"
 #include "TH3F.h"
 
+namespace {
 //! Append the slice strings for eta and pt to a given basic file name, i.e.
 //! insert the slice suffixes in the correct position.
 std::string appendSliceStrings(const std::string& str,
@@ -45,24 +46,6 @@ std::string createHistString(const std::string& str) {
     throw std::invalid_argument("");
   }
   return s.substr(0, pos);
-}
-
-//! Initialise the main output object (of class TH3F).
-std::unique_ptr<TH3F> initOutput3DHist(const std::string& base_name) {
-  std::string hist_name{};
-  if (base_name.find("dilepton") != std::string::npos) {
-    hist_name = "hist_ppt_prompt_3D";
-  } else {
-    hist_name = "hist_ppt_fake_3D";
-  }
-  float pt_bins[6] = {0, 27000, 35000, 50000, 80000, 1000000};
-  float eta_bins[5] = {0, 0.6, 1.37, 1.52, 2.37};
-  float ppt_bins[11] = {0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
-  return std::make_unique<TH3F>(hist_name.c_str(),
-                                hist_name.c_str(),
-                                4, eta_bins,
-                                5, pt_bins,
-                                10, ppt_bins);
 }
 
 //! Get a histogram from a file. Throw an exception otherwise.
@@ -106,6 +89,26 @@ std::unique_ptr<TH1F> prepareDataMCRatio(TFile* file,
   h_mc->Scale(1./h_mc->Integral());
   h_data->Divide(h_mc);
   return h_data;
+}
+}  // namespace (anonymous)
+
+
+//! Initialise the main output object (of class TH3F).
+std::unique_ptr<TH3F> initOutput3DHist(const std::string& base_name) {
+  std::string hist_name{};
+  if (base_name.find("dilepton") != std::string::npos) {
+    hist_name = "hist_ppt_prompt_3D";
+  } else {
+    hist_name = "hist_ppt_fake_3D";
+  }
+  float pt_bins[6] = {0, 27000, 35000, 50000, 80000, 1000000};
+  float eta_bins[5] = {0, 0.6, 1.37, 1.52, 2.37};
+  float ppt_bins[11] = {0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
+  return std::make_unique<TH3F>(hist_name.c_str(),
+                                hist_name.c_str(),
+                                4, eta_bins,
+                                5, pt_bins,
+                                10, ppt_bins);
 }
 
 SystHist1D::SystHist1D(const std::string& file_path)
