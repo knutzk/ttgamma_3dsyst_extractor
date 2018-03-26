@@ -70,37 +70,39 @@ auto get_hist(TFile* file, const std::string& hist_string) {
   return h;
 }
 
-//! Prepare a data/MC ratio, with MC scaled to data.
-std::unique_ptr<TH1F> prepareDataMCRatio(TFile* file,
-                                         const std::string& hist_string,
-                                         std::vector<std::string>* mc_hists) {
-  // Retrieve histogram for data. If the histogram does not
-  // exist, do not catch the exception, because we need the data
-  // histogram. Don't let ROOT deal with the memory of this
-  // histogram, we want to do this ourselves.
-  auto pointer = static_cast<TH1F*>(get_hist(file, hist_string + "Data")->Clone());
-  pointer->SetDirectory(0);
-  std::unique_ptr<TH1F> h_data{pointer};
+//! Get a copy of the data histogram from a TFile.
+auto get_data_hist(TFile* file, const std::string& hist_string) {
+  auto && h = static_cast<TH1F*>(get_hist(file, hist_string + "Data")->Clone());
+  h->SetDirectory(0);
+  return std::unique_ptr<TH1F>{h};
+}
 
-  // Add all MC histograms on top of each other. If one of them
-  // does not exist, handle it gracefully and remove it from the
-  // list of histograms in 'mc_hists'. If the first MC histogram
-  // (usually signal) does not exist, don't catch the exception.
-  TH1F* h_mc;
-  for (auto h_itr = mc_hists->begin(); h_itr != mc_hists->end(); ++h_itr) {
-    if (h_itr == mc_hists->begin()) {
-      h_mc = get_hist(file, hist_string + mc_hists->front());
-    } else {
-      try {
-        h_mc->Add(get_hist(file, hist_string + *h_itr));
-      } catch (std::invalid_argument) {
-        std::cerr << "Could not retrieve MC histogram for \"" << *h_itr;
-        std::cerr << "\". Removing it from the list of histograms" << std::endl;
-        mc_hists->erase(h_itr);
-      }
+//! Get a stack of all MC histograms from a TFile. Do _not_ catch
+//! the exception if the first histogram is not found, but handle
+//! all others smoothly. Non existing histograms will be removed
+//! from the string container.
+auto get_mc_hist_stack(TFile* file, const std::string& hist_string, std::vector<std::string>* mc_hists) {
+  auto && h{get_hist(file, hist_string + mc_hists->front())};
+  for (auto itr = mc_hists->begin() + 1; itr != mc_hists->end(); ++itr) {
+    try {
+      h->Add(get_hist(file, hist_string + *itr));
+    } catch (std::invalid_argument) {
+      std::cerr << "Could not retrieve MC histogram for \"" << *itr;
+      std::cerr << "\". Removing it from the list of histograms" << std::endl;
+      mc_hists->erase(itr);
     }
   }
+  return h;
+}
 
+//! Prepare a data/MC ratio, with MC scaled to data. Get a copy
+//! of the data histogram and a stack of all MC hists, then
+//! calculate the ratio and return it.
+std::unique_ptr<TH1F> prepare_data_mc_ratio(TFile* file,
+                                         const std::string& hist_string,
+                                         std::vector<std::string>* mc_hists) {
+  auto h_data = get_data_hist(file, hist_string);
+  auto h_mc = get_mc_hist_stack(file, hist_string, mc_hists);
   h_data->Scale(1./h_data->Integral());
   h_mc->Scale(1./h_mc->Integral());
   h_data->Divide(h_mc);
@@ -130,7 +132,7 @@ void SystHist1D::fillFromRatios() {
   // gracefully.
   std::unique_ptr<TH1F> data_mc_ratio;
   try {
-    data_mc_ratio = prepareDataMCRatio(file, createHistString(file_path_), mc_hists_);
+    data_mc_ratio = prepare_data_mc_ratio(file, createHistString(file_path_), mc_hists_);
   } catch (std::invalid_argument) {
     std::cerr << "Retrieving histograms failed ..." << std::endl;
     return;
@@ -183,7 +185,7 @@ void SystHist3D::fillFromRatios() {
       // gracefully.
       std::unique_ptr<TH1F> data_mc_ratio;
       try {
-        data_mc_ratio = prepareDataMCRatio(file, createHistString(file_string), mc_hists_);
+        data_mc_ratio = prepare_data_mc_ratio(file, createHistString(file_string), mc_hists_);
       } catch (std::invalid_argument) {
         std::cerr << "Retrieving histograms failed ..." << std::endl;
         throw;
