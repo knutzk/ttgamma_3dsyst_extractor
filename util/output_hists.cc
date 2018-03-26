@@ -11,8 +11,8 @@
 #include "TH3F.h"
 
 namespace {
-//! Append the slice strings for eta and pt to a given basic file name, i.e.
-//! insert the slice suffixes in the correct position.
+//! Append the slice strings for eta and pt to a given basic file
+//! name, i.e. insert the slice suffixes in the correct position.
 std::string appendSliceStrings(const std::string& str,
                                const std::string& eta_slice_string,
                                const std::string& pt_slice_string) {
@@ -25,8 +25,9 @@ std::string appendSliceStrings(const std::string& str,
   return ss.str();
 }
 
-//! Create the correct base string for histogram for a given file name. This
-//! essentially cuts away some parts of the given string.
+//! Create the correct base string for histogram for a given file
+//! name. This essentially cuts away some parts of the given
+//! string.
 std::string createHistString(const std::string& str) {
   auto pos = str.find("ph_HFT_MVA_");
   if (pos == std::string::npos) throw std::invalid_argument("");
@@ -59,17 +60,18 @@ TH1F* getHistogram(TFile* file, const std::string& hist_string) {
 std::unique_ptr<TH1F> prepareDataMCRatio(TFile* file,
                                          const std::string& hist_string,
                                          std::vector<std::string>* mc_hists) {
-  // Retrieve histogram for data. If the histogram does not exist, do not catch
-  // the exception, because we need the data histogram. Don't let ROOT deal with
-  // the memory of this histogram, we want to do this ourselves.
+  // Retrieve histogram for data. If the histogram does not
+  // exist, do not catch the exception, because we need the data
+  // histogram. Don't let ROOT deal with the memory of this
+  // histogram, we want to do this ourselves.
   auto pointer = static_cast<TH1F*>(getHistogram(file, hist_string + "Data")->Clone());
   pointer->SetDirectory(0);
   std::unique_ptr<TH1F> h_data{pointer};
 
-  // Add all MC histograms on top of each other. If one of them does not exist,
-  // handle it gracefully and remove it from the list of histograms in
-  // 'mc_hists'. If the first MC histogram (usually signal) does not exist,
-  // don't catch the exception.
+  // Add all MC histograms on top of each other. If one of them
+  // does not exist, handle it gracefully and remove it from the
+  // list of histograms in 'mc_hists'. If the first MC histogram
+  // (usually signal) does not exist, don't catch the exception.
   TH1F* h_mc;
   for (auto h_itr = mc_hists->begin(); h_itr != mc_hists->end(); ++h_itr) {
     if (h_itr == mc_hists->begin()) {
@@ -115,8 +117,9 @@ void SystHist1D::fillFromRatios() {
   auto file = TFile::Open(file_path_.c_str(), "READ");
   if (!file) return;
 
-  // Try creating the data/MC ratio from the opened file. If anything goes
-  // wrong and histograms cannot be found, exit gracefully.
+  // Try creating the data/MC ratio from the opened file. If
+  // anything goes wrong and histograms cannot be found, exit
+  // gracefully.
   std::unique_ptr<TH1F> data_mc_ratio;
   try {
     data_mc_ratio = prepareDataMCRatio(file, createHistString(file_path_), mc_hists_);
@@ -171,8 +174,9 @@ void SystHist3D::fillFromRatios() {
       auto file = TFile::Open(file_string.c_str(), "READ");
       if (!file) throw;
 
-      // Try creating the data/MC ratio from the opened file. If anything goes
-      // wrong and histograms cannot be found, exit gracefully.
+      // Try creating the data/MC ratio from the opened file. If
+      // anything goes wrong and histograms cannot be found, exit
+      // gracefully.
       std::unique_ptr<TH1F> data_mc_ratio;
       try {
         data_mc_ratio = prepareDataMCRatio(file, createHistString(file_string), mc_hists_);
@@ -181,8 +185,9 @@ void SystHist3D::fillFromRatios() {
         throw;
       }
 
-      // Now switch to the output file, retrieve the histogram bin contents and
-      // store them in the TH3F object that will be saved to the output file.
+      // Now switch to the output file, retrieve the histogram
+      // bin contents and store them in the TH3F object that will
+      // be saved to the output file.
       for (int x = 1; x <= data_mc_ratio->GetNbinsX(); ++x) {
         const float threshold_up{2.};
         const float threshold_down{0.5};
