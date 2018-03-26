@@ -43,49 +43,7 @@ int main(int argc, char* argv[]) {
 
   // Fill the 3D histogram for systs.
   auto h_3D = initOutput3DHist(base_name);
-  for (unsigned int pt_index = 0; pt_index < pt_slice_strings.size(); ++pt_index) {
-    auto pt_slice = pt_slice_strings.at(pt_index);
-    for (unsigned int eta_index = 0; eta_index < eta_slice_strings.size(); ++eta_index) {
-      auto eta_slice = eta_slice_strings.at(eta_index);
-
-      // Skip eta slice 3 which is the ecal crack region.
-      if (eta_index == 2) continue;
-
-      auto file_string = appendSliceStrings(base_name, eta_slice, pt_slice);
-      std::cout << "Opening file " << file_string << std::endl;
-      auto file = TFile::Open(file_string.c_str(), "READ");
-      if (!file) return 1;
-
-      // Try creating the data/MC ratio from the opened file. If anything goes
-      // wrong and histograms cannot be found, exit gracefully.
-      std::unique_ptr<TH1F> data_mc_ratio;
-      try {
-        data_mc_ratio = prepareDataMCRatio(file, createHistString(file_string), &mc_hists);
-      } catch (std::invalid_argument) {
-        std::cerr << "Retrieving histograms failed ..." << std::endl;
-        return 1;
-      }
-
-      // Now switch to the output file, retrieve the histogram bin contents and
-      // store them in the TH3F object that will be saved to the output file.
-      output_file->cd();
-      for (int x = 1; x <= data_mc_ratio->GetNbinsX(); ++x) {
-        const float threshold_up{2.};
-        const float threshold_down{0.5};
-        if (data_mc_ratio->GetBinContent(x) > threshold_up) {
-          h_3D->SetBinContent(eta_index + 1, pt_index + 1, x, threshold_up);
-          h_3D->SetBinError(eta_index + 1, pt_index + 1, x, 1.);
-        } else if (data_mc_ratio->GetBinContent(x) < threshold_down) {
-          h_3D->SetBinContent(eta_index + 1, pt_index + 1, x, threshold_down);
-          h_3D->SetBinError(eta_index + 1, pt_index + 1, x, 0.5);
-        } else {
-          h_3D->SetBinContent(eta_index + 1, pt_index + 1, x, data_mc_ratio->GetBinContent(x));
-          h_3D->SetBinError(eta_index + 1, pt_index + 1, x, data_mc_ratio->GetBinError(x));
-        }
-      }
-      file->Close();
-    }
-  }
+  fill3D(h_3D.get(), base_name, eta_slice_strings, pt_slice_strings, &mc_hists, output_file);
 
   output_file->Write();
 
