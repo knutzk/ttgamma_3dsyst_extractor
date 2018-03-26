@@ -4,7 +4,7 @@ LIBS = `root-config --libs`
 CFLAGS = `root-config --cflags`
 MISCFLAGS = -std=c++1y
 
-SRC = $(wildcard ./*.cc)
+SRC = $(wildcard util/*.cc)
 OBJ = $(SRC:.cc=.o)
 TARGET = derive-syst.exe
 
