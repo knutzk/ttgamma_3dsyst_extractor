@@ -95,12 +95,12 @@ std::unique_ptr<TH3F> initOutput3DHist(const std::string& base_name) {
   } else {
     hist_name = "hist_ppt_fake_3D";
   }
-  float eta_bins[7] = {0, 0.6, 1.0, 1.37, 1.52, 2.00, 2.37};
   float pt_bins[6] = {0, 27000, 35000, 50000, 80000, 100000};
+  float eta_bins[5] = {0, 0.6, 1.37, 1.52, 2.37};
   float ppt_bins[11] = {0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
   return std::make_unique<TH3F>(hist_name.c_str(),
                                 hist_name.c_str(),
-                                6, eta_bins,
+                                4, eta_bins,
                                 5, pt_bins,
                                 10, ppt_bins);
 }
@@ -153,11 +153,9 @@ int main(int argc, char* argv[]) {
 
   std::vector<std::string> eta_slice_strings;
   eta_slice_strings.emplace_back("eta0006");
-  eta_slice_strings.emplace_back("eta06100");
-  eta_slice_strings.emplace_back("eta100137");
+  eta_slice_strings.emplace_back("eta06137");
   eta_slice_strings.emplace_back("eta137152");  // this is the crack region
-  eta_slice_strings.emplace_back("eta152200");
-  eta_slice_strings.emplace_back("eta200inf");
+  eta_slice_strings.emplace_back("eta152inf");
 
   std::vector<std::string> pt_slice_strings;
   pt_slice_strings.emplace_back("pt0027");
@@ -188,8 +186,8 @@ int main(int argc, char* argv[]) {
     for (unsigned int eta_index = 0; eta_index < eta_slice_strings.size(); ++eta_index) {
       auto eta_slice = eta_slice_strings.at(eta_index);
 
-      // Skip eta slice 4 which is the ecal crack region.
-      if (eta_index == 3) continue;
+      // Skip eta slice 3 which is the ecal crack region.
+      if (eta_index == 2) continue;
 
       auto file_string = appendSliceStrings(base_name, eta_slice, pt_slice);
       std::cout << "Opening file " << file_string << std::endl;
