@@ -15,7 +15,7 @@ const float pt_bins[6] = {0, 27000, 35000, 50000, 80000, 1000000};
 const float eta_bins[5] = {0, 0.6, 1.37, 1.52, 2.37};
 const float ppt_bins[11] = {0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
 
-//! Get a stripped version of a file name.
+//! Get the stripped version of a file name.
 auto get_stripped_file_name(const std::string& path) {
   auto pos = path.rfind("/");
   if (pos == std::string::npos) {
@@ -25,17 +25,14 @@ auto get_stripped_file_name(const std::string& path) {
   }
 }
 
-//! Seach for a substring in a given string and return the
-//! position _after_ the substring.
+//! Get the position _after_ a substring in a string.
 auto get_pos_after_string(const std::string& s, const std::string& sub) {
   auto pos = s.rfind(sub);
   if (pos != std::string::npos) return pos + sub.length();
   else return std::string::npos;
 };
 
-//! Insert the slice strings for eta and pt to a given basic file
-//! name. This looks for the correct position to insert them and
-//! returns the newly composed string.
+//! Insert the slice strings for eta and pt after "HFT_MVA".
 auto insert_slice_strings(const std::string& str, const std::string& eta, const std::string& pt) {
   auto pos = get_pos_after_string(str, "HFT_MVA_");
   if (pos == std::string::npos) throw std::invalid_argument("could not insert slice strings");
@@ -45,18 +42,14 @@ auto insert_slice_strings(const std::string& str, const std::string& eta, const 
   return ss.str();
 }
 
-//! Create the correct base string for histogram for a given file
-//! name. This essentially cuts away some parts from the front
-//! and the end of the file name.
+//! Strip away parts of a file string and create the base string
+//! for histogram names in it.
 std::string create_hist_string(const std::string& str) {
-  // First remove everything before the string "ph_HFT_MVA".
   auto pos = str.find("ph_HFT_MVA_");
   if (pos == std::string::npos) throw std::invalid_argument("could not create hist string from " + str);
   auto sub = str.substr(pos, str.length() - pos);
 
-  // The cut away everything after the channel name.
   pos = get_pos_after_string(sub, "dilepton_ppt");
-  // Try with "singlelepton" if "dilepton" failed.
   if (pos == std::string::npos) pos = get_pos_after_string(sub, "singlelepton_ppt");
   if (pos == std::string::npos) {
     throw std::invalid_argument("creating histogram string failed");
@@ -64,8 +57,7 @@ std::string create_hist_string(const std::string& str) {
   return sub.substr(0, pos);
 }
 
-//! Determine name for output histograms (i.e. which systematic)
-//! based on a given file path.
+//! Determine name for output histograms based on input.
 std::string det_output_hist_string(const std::string& file_path) {
   if (file_path.find("dilepton") != std::string::npos) {
     return "hist_ppt_prompt";
