@@ -34,8 +34,6 @@ int main(int argc, char* argv[]) {
   mc_hists.emplace_back("Wphoton");
   mc_hists.emplace_back("Other");
 
-  auto output_file = TFile::Open(opts.io.output.c_str(), "RECREATE");
-
   // Fill the 1D histogram for systs.
   auto h_1D = std::make_unique<SystHist1D>(base_name);
   h_1D->setMCHists(&mc_hists);
@@ -47,15 +45,22 @@ int main(int argc, char* argv[]) {
   h_3D->setEtaSlices(&eta_slice_strings);
   h_3D->setPtSlices(&pt_slice_strings);
   h_3D->fillFromRatios();
+
+  // Open the output file, write the two histograms and close it.
+  auto output_file = TFile::Open(opts.io.output.c_str(), "RECREATE");
   output_file->cd();
+  h_1D->Write();
   h_3D->Write();
   output_file->Write();
+  output_file->Close();
 
-  // Example
+  // Example to determine correct bins and retrieve weights.
   auto eta_bin = h_3D->GetXaxis()->FindBin(1.20);
   auto pt_bin = h_3D->GetYaxis()->FindBin(64213);
   auto ppt_bin = h_3D->GetZaxis()->FindBin(0.78);
-  auto ppt_weight = h_3D->GetBinContent(eta_bin, pt_bin, ppt_bin);
-  std::cout << ppt_weight << std::endl;
+  auto ppt_weight_1d = h_1D->GetBinContent(ppt_bin);
+  auto ppt_weight_3d = h_3D->GetBinContent(eta_bin, pt_bin, ppt_bin);
+  std::cout << "Weight 1D: " << ppt_weight_1d << std::endl;
+  std::cout << "Weight 3D: " << ppt_weight_3d << std::endl;
   return 0;
 }
