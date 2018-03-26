@@ -36,14 +36,48 @@ private:
 };
 
 
-//! Initialise the main output object (of class TH3F).
-std::unique_ptr<TH3F> initOutput3DHist(const std::string& base_name);
+class SystHist3D : public TH3F {
+ public:
+  //! Inherit all constructors from the base class.
+  using TH3F::TH3F;
 
-void fill3D(TH3F* h_3D,
-            const std::string& base_name,
-            const std::vector<std::string>& eta_slice_strings,
-            const std::vector<std::string>& pt_slice_strings,
-            std::vector<std::string>* mc_hists,
-            TFile* output_file);
+  //! Initialise the 3D systematic histogram, with the path to
+  //! the main input file as input parameter.
+  SystHist3D(const std::string& file_path);
+
+  //! Default destructor.
+  virtual ~SystHist3D() = default;
+
+  //! Set the internal pointer for the container that contains
+  //! strings of all MC histograms.
+  void setMCHists(std::vector<std::string>* hists);
+
+  //! Set the internal pointer for the container that contains
+  //! strings of all eta slices.
+  void setEtaSlices(std::vector<std::string>* strings);
+
+  //! Set the internal pointer for the container that contains
+  //! strings of all pt slices.
+  void setPtSlices(std::vector<std::string>* strings);
+
+  //! Create the data/MC ratios from the input file and all its
+  //! derivatives for the different eta/pt slices and fill the 3D
+  //! histogram based on these ratios.
+  void fillFromRatios();
+
+ private:
+  //! Path to the main input file. This file name serves as a
+  //! base to derive the names of all other files.
+  std::string file_path_;
+
+  //! Pointer to the container with MC histogram names.
+  std::vector<std::string>* mc_hists_;
+
+  //! Pointer to the container with eta slice strings.
+  std::vector<std::string>* eta_slices_;
+
+  //! Pointer to the container with pt slice strings.
+  std::vector<std::string>* pt_slices_;
+};
 
 #endif  // _OUTPUT_HISTS_HH_

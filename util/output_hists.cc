@@ -93,24 +93,6 @@ std::unique_ptr<TH1F> prepareDataMCRatio(TFile* file,
 }  // namespace (anonymous)
 
 
-//! Initialise the main output object (of class TH3F).
-std::unique_ptr<TH3F> initOutput3DHist(const std::string& base_name) {
-  std::string hist_name{};
-  if (base_name.find("dilepton") != std::string::npos) {
-    hist_name = "hist_ppt_prompt_3D";
-  } else {
-    hist_name = "hist_ppt_fake_3D";
-  }
-  float pt_bins[6] = {0, 27000, 35000, 50000, 80000, 1000000};
-  float eta_bins[5] = {0, 0.6, 1.37, 1.52, 2.37};
-  float ppt_bins[11] = {0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
-  return std::make_unique<TH3F>(hist_name.c_str(),
-                                hist_name.c_str(),
-                                4, eta_bins,
-                                5, pt_bins,
-                                10, ppt_bins);
-}
-
 SystHist1D::SystHist1D(const std::string& file_path)
   : file_path_(file_path) {
   std::string hist_name{};
@@ -149,21 +131,42 @@ void SystHist1D::fillFromRatios() {
   file->Close();
 }
 
-void fill3D(TH3F* h_3D,
-            const std::string& base_name,
-            const std::vector<std::string>& eta_slice_strings,
-            const std::vector<std::string>& pt_slice_strings,
-            std::vector<std::string>* mc_hists,
-            TFile* output_file) {
-  for (unsigned int pt_index = 0; pt_index < pt_slice_strings.size(); ++pt_index) {
-    auto pt_slice = pt_slice_strings.at(pt_index);
-    for (unsigned int eta_index = 0; eta_index < eta_slice_strings.size(); ++eta_index) {
-      auto eta_slice = eta_slice_strings.at(eta_index);
+SystHist3D::SystHist3D(const std::string& file_path)
+  : file_path_(file_path) {
+  std::string hist_name{};
+  if (file_path_.find("dilepton") != std::string::npos) {
+    hist_name = "hist_ppt_prompt_3D";
+  } else {
+    hist_name = "hist_ppt_fake_3D";
+  }
+  const float pt_bins[6] = {0, 27000, 35000, 50000, 80000, 1000000};
+  const float eta_bins[5] = {0, 0.6, 1.37, 1.52, 2.37};
+  const float ppt_bins[11] = {0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
+  SystHist3D{hist_name.c_str(), hist_name.c_str(), 4, eta_bins, 5, pt_bins, 10, ppt_bins};
+}
+
+void SystHist3D::setMCHists(std::vector<std::string>* hists) {
+  mc_hists_ = hists;
+}
+
+void SystHist3D::setEtaSlices(std::vector<std::string>* strings) {
+  eta_slices_ = strings;
+}
+
+void SystHist3D::setPtSlices(std::vector<std::string>* strings) {
+  pt_slices_ = strings;
+}
+
+void SystHist3D::fillFromRatios() {
+  for (unsigned int pt_index = 0; pt_index < pt_slices_->size(); ++pt_index) {
+    auto pt_slice = pt_slices_->at(pt_index);
+    for (unsigned int eta_index = 0; eta_index < eta_slices_->size(); ++eta_index) {
+      auto eta_slice = eta_slices_->at(eta_index);
 
       // Skip eta slice 3 which is the ecal crack region.
       if (eta_index == 2) continue;
 
-      auto file_string = appendSliceStrings(base_name, eta_slice, pt_slice);
+      auto file_string = appendSliceStrings(file_path_, eta_slice, pt_slice);
       std::cout << "Opening file " << file_string << std::endl;
       auto file = TFile::Open(file_string.c_str(), "READ");
       if (!file) throw;
@@ -172,7 +175,7 @@ void fill3D(TH3F* h_3D,
       // wrong and histograms cannot be found, exit gracefully.
       std::unique_ptr<TH1F> data_mc_ratio;
       try {
-        data_mc_ratio = prepareDataMCRatio(file, createHistString(file_string), mc_hists);
+        data_mc_ratio = prepareDataMCRatio(file, createHistString(file_string), mc_hists_);
       } catch (std::invalid_argument) {
         std::cerr << "Retrieving histograms failed ..." << std::endl;
         throw;
@@ -180,19 +183,18 @@ void fill3D(TH3F* h_3D,
 
       // Now switch to the output file, retrieve the histogram bin contents and
       // store them in the TH3F object that will be saved to the output file.
-      output_file->cd();
       for (int x = 1; x <= data_mc_ratio->GetNbinsX(); ++x) {
         const float threshold_up{2.};
         const float threshold_down{0.5};
         if (data_mc_ratio->GetBinContent(x) > threshold_up) {
-          h_3D->SetBinContent(eta_index + 1, pt_index + 1, x, threshold_up);
-          h_3D->SetBinError(eta_index + 1, pt_index + 1, x, 1.);
+          this->SetBinContent(eta_index + 1, pt_index + 1, x, threshold_up);
+          this->SetBinError(eta_index + 1, pt_index + 1, x, 1.);
         } else if (data_mc_ratio->GetBinContent(x) < threshold_down) {
-          h_3D->SetBinContent(eta_index + 1, pt_index + 1, x, threshold_down);
-          h_3D->SetBinError(eta_index + 1, pt_index + 1, x, 0.5);
+          this->SetBinContent(eta_index + 1, pt_index + 1, x, threshold_down);
+          this->SetBinError(eta_index + 1, pt_index + 1, x, 0.5);
         } else {
-          h_3D->SetBinContent(eta_index + 1, pt_index + 1, x, data_mc_ratio->GetBinContent(x));
-          h_3D->SetBinError(eta_index + 1, pt_index + 1, x, data_mc_ratio->GetBinError(x));
+          this->SetBinContent(eta_index + 1, pt_index + 1, x, data_mc_ratio->GetBinContent(x));
+          this->SetBinError(eta_index + 1, pt_index + 1, x, data_mc_ratio->GetBinError(x));
         }
       }
       file->Close();

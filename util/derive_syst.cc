@@ -42,8 +42,11 @@ int main(int argc, char* argv[]) {
   h_1D->fillFromRatios();
 
   // Fill the 3D histogram for systs.
-  auto h_3D = initOutput3DHist(base_name);
-  fill3D(h_3D.get(), base_name, eta_slice_strings, pt_slice_strings, &mc_hists, output_file);
+  auto h_3D = std::make_unique<SystHist3D>(base_name);
+  h_3D->setMCHists(&mc_hists);
+  h_3D->setEtaSlices(&eta_slice_strings);
+  h_3D->setPtSlices(&pt_slice_strings);
+  h_3D->fillFromRatios();
 
   output_file->Write();
 
