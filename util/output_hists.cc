@@ -15,6 +15,14 @@ const float pt_bins[6] = {0, 27000, 35000, 50000, 80000, 1000000};
 const float eta_bins[5] = {0, 0.6, 1.37, 1.52, 2.37};
 const float ppt_bins[11] = {0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
 
+//! Seach for a substring in a given string and return the
+//! position _after_ the substring.
+auto get_pos_after_string(const std::string& s, const std::string& sub) {
+  auto pos = s.rfind(sub);
+  if (pos != std::string::npos) return pos + sub.length();
+  else return std::string::npos;
+};
+
 //! Insert the slice strings for eta and pt to a given basic file
 //! name. This looks for the correct position to insert them and
 //! returns the newly composed string.
@@ -28,27 +36,24 @@ auto insert_slice_strings(const std::string& str, const std::string& eta, const 
 }
 
 //! Create the correct base string for histogram for a given file
-//! name. This essentially cuts away some parts of the given
-//! string.
-std::string createHistString(const std::string& str) {
+//! name. This essentially cuts away some parts from the front
+//! and the end of the file name.
+std::string create_hist_string(const std::string& str) {
+  // First remove everything before the string "ph_HFT_MVA".
   auto pos = str.find("ph_HFT_MVA_");
   if (pos == std::string::npos) throw std::invalid_argument("");
-  auto s = str.substr(pos, str.length() - pos);
+  auto sub = str.substr(pos, str.length() - pos);
 
-  auto getPosAfterString = [](const std::string& s, const std::string& ss) {
-    auto pos = s.rfind(ss);
-    if (pos != std::string::npos) return pos + ss.length();
-    else return std::string::npos;
-  };
-
-  pos = getPosAfterString(s, "dilepton_ppt_");
-  if (pos == std::string::npos) pos = getPosAfterString(s, "singlelepton_ppt_");
+  // The cut away everything after the channel name.
+  pos = get_pos_after_string(sub, "dilepton_ppt_");
+  // Try with "singlelepton" if "dilepton" failed.
+  if (pos == std::string::npos) pos = get_pos_after_string(sub, "singlelepton_ppt_");
   if (pos == std::string::npos) {
     std::cerr << "Could not create histogram string ";
     std::cerr << "based on "<< str << std::endl;
     throw std::invalid_argument("");
   }
-  return s.substr(0, pos);
+  return sub.substr(0, pos);
 }
 
 //! Determine name for output histograms (i.e. which systematic)
@@ -130,7 +135,7 @@ void SystHist1D::fillFromRatios() {
   // gracefully.
   std::unique_ptr<TH1F> data_mc_ratio;
   try {
-    data_mc_ratio = prepare_data_mc_ratio(file, createHistString(file_path_), mc_hists_);
+    data_mc_ratio = prepare_data_mc_ratio(file, create_hist_string(file_path_), mc_hists_);
   } catch (std::invalid_argument) {
     std::cerr << "Retrieving histograms failed ..." << std::endl;
     return;
@@ -173,7 +178,7 @@ void SystHist3D::fillFromRatios() {
       // Skip eta slice 3 which is the ecal crack region.
       if (eta_index == 2) continue;
 
-      auto file_string = insert_slice_string(file_path_, eta_slice, pt_slice);
+      auto file_string = insert_slice_strings(file_path_, eta_slice, pt_slice);
       std::cout << "Opening file " << file_string << std::endl;
       auto file = TFile::Open(file_string.c_str(), "READ");
       if (!file) throw;
@@ -183,7 +188,7 @@ void SystHist3D::fillFromRatios() {
       // gracefully.
       std::unique_ptr<TH1F> data_mc_ratio;
       try {
-        data_mc_ratio = prepare_data_mc_ratio(file, createHistString(file_string), mc_hists_);
+        data_mc_ratio = prepare_data_mc_ratio(file, create_hist_string(file_string), mc_hists_);
       } catch (std::invalid_argument) {
         std::cerr << "Retrieving histograms failed ..." << std::endl;
         throw;
