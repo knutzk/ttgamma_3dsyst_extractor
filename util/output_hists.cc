@@ -53,21 +53,20 @@ std::string createHistString(const std::string& str) {
   return s.substr(0, pos);
 }
 
-//! Determine name of a histogram based on a given file path.
-std::string determineHistName(const std::string& file_path) {
-  std::string hist_name{};
+//! Determine name for output histograms (i.e. which systematic)
+//! based on a given file path.
+std::string det_output_hist_string(const std::string& file_path) {
   if (file_path.find("dilepton") != std::string::npos) {
-    hist_name = "hist_ppt_prompt";
+    return "hist_ppt_prompt";
   } else {
-    hist_name = "hist_ppt_fake";
+    return "hist_ppt_fake";
   }
-  return hist_name;
 }
 
 //! Get a histogram from a file. Throw an exception otherwise.
-TH1F* getHistogram(TFile* file, const std::string& hist_string) {
+auto get_hist(TFile* file, const std::string& hist_string) {
   auto h = static_cast<TH1F*>(file->Get(hist_string.c_str()));
-  if (!h) throw std::invalid_argument("Error when retrieving histogram");
+  if (!h) throw std::invalid_argument("histogram not found");
   return h;
 }
 
@@ -79,7 +78,7 @@ std::unique_ptr<TH1F> prepareDataMCRatio(TFile* file,
   // exist, do not catch the exception, because we need the data
   // histogram. Don't let ROOT deal with the memory of this
   // histogram, we want to do this ourselves.
-  auto pointer = static_cast<TH1F*>(getHistogram(file, hist_string + "Data")->Clone());
+  auto pointer = static_cast<TH1F*>(get_hist(file, hist_string + "Data")->Clone());
   pointer->SetDirectory(0);
   std::unique_ptr<TH1F> h_data{pointer};
 
@@ -90,10 +89,10 @@ std::unique_ptr<TH1F> prepareDataMCRatio(TFile* file,
   TH1F* h_mc;
   for (auto h_itr = mc_hists->begin(); h_itr != mc_hists->end(); ++h_itr) {
     if (h_itr == mc_hists->begin()) {
-      h_mc = getHistogram(file, hist_string + mc_hists->front());
+      h_mc = get_hist(file, hist_string + mc_hists->front());
     } else {
       try {
-        h_mc->Add(getHistogram(file, hist_string + *h_itr));
+        h_mc->Add(get_hist(file, hist_string + *h_itr));
       } catch (std::invalid_argument) {
         std::cerr << "Could not retrieve MC histogram for \"" << *h_itr;
         std::cerr << "\". Removing it from the list of histograms" << std::endl;
@@ -111,8 +110,8 @@ std::unique_ptr<TH1F> prepareDataMCRatio(TFile* file,
 
 
 SystHist1D::SystHist1D(const std::string& file_path)
-  : SystHist1D{(determineHistName(file_path) + "_1D").c_str(),
-               (determineHistName(file_path) + "_1D").c_str(),
+  : SystHist1D{(det_output_hist_string(file_path) + "_1D").c_str(),
+               (det_output_hist_string(file_path) + "_1D").c_str(),
                10, ppt_bins} {
   file_path_ = file_path;
 }
@@ -144,8 +143,8 @@ void SystHist1D::fillFromRatios() {
 }
 
 SystHist3D::SystHist3D(const std::string& file_path)
-  : SystHist3D{(determineHistName(file_path) + "_3D").c_str(),
-               (determineHistName(file_path) + "_3D").c_str(),
+  : SystHist3D{(det_output_hist_string(file_path) + "_3D").c_str(),
+               (det_output_hist_string(file_path) + "_3D").c_str(),
                4, eta_bins,
                5, pt_bins,
                10, ppt_bins} {
