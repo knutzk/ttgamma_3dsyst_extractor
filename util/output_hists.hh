@@ -32,9 +32,18 @@ std::unique_ptr<TH1F> prepareDataMCRatio(TFile* file,
                                          const std::string& hist_string,
                                          std::vector<std::string>* mc_hists);
 
-//! Initialise and fill the 1D output object (of class TH1F).
-std::unique_ptr<TH1F> prepare1DHist(const std::string& base_name,
-                                    std::vector<std::string>* mc_hists);
+class SystHist1D : public TH1F {
+public:
+  SystHist1D(const std::string& file_path);
+  virtual ~SystHist1D() = default;
+
+  void setMCHists(std::vector<std::string>* hists);
+  void fillFromRatios();
+
+private:
+  std::string file_path_;
+  std::vector<std::string>* mc_hists_;
+};
 
 void fill3D(TH3F* h_3D,
             const std::string& base_name,

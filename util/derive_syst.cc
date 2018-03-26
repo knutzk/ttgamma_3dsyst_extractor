@@ -37,9 +37,9 @@ int main(int argc, char* argv[]) {
   auto output_file = TFile::Open(opts.io.output.c_str(), "RECREATE");
 
   // Fill the 1D histogram for systs.
-  auto h_1D = prepare1DHist(base_name, &mc_hists);
-  if (!h_1D) return 1;
-  output_file->cd();
+  auto h_1D = std::make_unique<SystHist1D>(base_name);
+  h_1D->setMCHists(&mc_hists);
+  h_1D->fillFromRatios();
 
   // Fill the 3D histogram for systs.
   auto h_3D = initOutput3DHist(base_name);

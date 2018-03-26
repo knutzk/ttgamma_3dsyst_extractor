@@ -1,3 +1,5 @@
+#include "util/output_hists.hh"
+
 #include <iostream>
 #include <memory>
 #include <sstream>
@@ -106,37 +108,42 @@ std::unique_ptr<TH1F> prepareDataMCRatio(TFile* file,
   return h_data;
 }
 
-//! Initialise and fill the 1D output object (of class TH1F).
-std::unique_ptr<TH1F> prepare1DHist(const std::string& base_name,
-                                    std::vector<std::string>* mc_hists) {
+SystHist1D::SystHist1D(const std::string& file_path)
+  : file_path_(file_path) {
   std::string hist_name{};
-  if (base_name.find("dilepton") != std::string::npos) {
+  if (file_path.find("dilepton") != std::string::npos) {
     hist_name = "hist_ppt_prompt_1D";
   } else {
     hist_name = "hist_ppt_fake_1D";
   }
-  float ppt_bins[11] = {0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
-  auto hist = std::make_unique<TH1F>(hist_name.c_str(), hist_name.c_str(), 10, ppt_bins);
 
-  std::cout << "Opening file " << base_name << std::endl;
-  auto file = TFile::Open(base_name.c_str(), "READ");
-  if (!file) return nullptr;
+  const float ppt_bins[11] = {0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
+  TH1F{hist_name.c_str(), hist_name.c_str(), 10, ppt_bins};
+}
+
+void SystHist1D::setMCHists(std::vector<std::string>* hists) {
+  mc_hists_ = hists;
+}
+
+void SystHist1D::fillFromRatios() {
+  std::cout << "Opening file " << file_path_ << std::endl;
+  auto file = TFile::Open(file_path_.c_str(), "READ");
+  if (!file) return;
 
   // Try creating the data/MC ratio from the opened file. If anything goes
   // wrong and histograms cannot be found, exit gracefully.
   std::unique_ptr<TH1F> data_mc_ratio;
   try {
-    data_mc_ratio = prepareDataMCRatio(file, createHistString(base_name), mc_hists);
+    data_mc_ratio = prepareDataMCRatio(file, createHistString(file_path_), mc_hists_);
   } catch (std::invalid_argument) {
     std::cerr << "Retrieving histograms failed ..." << std::endl;
-    return nullptr;
+    return;
   }
   for (int x = 1; x <= data_mc_ratio->GetNbinsX(); ++x) {
-    hist->SetBinContent(x, data_mc_ratio->GetBinContent(x));
-    hist->SetBinError(x, data_mc_ratio->GetBinError(x));
+    this->SetBinContent(x, data_mc_ratio->GetBinContent(x));
+    this->SetBinError(x, data_mc_ratio->GetBinError(x));
   }
   file->Close();
-  return hist;
 }
 
 void fill3D(TH3F* h_3D,
