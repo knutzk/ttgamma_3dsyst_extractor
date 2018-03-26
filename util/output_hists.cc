@@ -11,6 +11,10 @@
 #include "TH3F.h"
 
 namespace {
+const float pt_bins[6] = {0, 27000, 35000, 50000, 80000, 1000000};
+const float eta_bins[5] = {0, 0.6, 1.37, 1.52, 2.37};
+const float ppt_bins[11] = {0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
+
 //! Append the slice strings for eta and pt to a given basic file
 //! name, i.e. insert the slice suffixes in the correct position.
 std::string appendSliceStrings(const std::string& str,
@@ -47,6 +51,17 @@ std::string createHistString(const std::string& str) {
     throw std::invalid_argument("");
   }
   return s.substr(0, pos);
+}
+
+//! Determine name of a histogram based on a given file path.
+std::string determineHistName(const std::string& file_path) {
+  std::string hist_name{};
+  if (file_path.find("dilepton") != std::string::npos) {
+    hist_name = "hist_ppt_prompt";
+  } else {
+    hist_name = "hist_ppt_fake";
+  }
+  return hist_name;
 }
 
 //! Get a histogram from a file. Throw an exception otherwise.
@@ -96,16 +111,10 @@ std::unique_ptr<TH1F> prepareDataMCRatio(TFile* file,
 
 
 SystHist1D::SystHist1D(const std::string& file_path)
-  : file_path_(file_path) {
-  std::string hist_name{};
-  if (file_path.find("dilepton") != std::string::npos) {
-    hist_name = "hist_ppt_prompt_1D";
-  } else {
-    hist_name = "hist_ppt_fake_1D";
-  }
-
-  const float ppt_bins[11] = {0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
-  SystHist1D{hist_name.c_str(), hist_name.c_str(), 10, ppt_bins};
+  : SystHist1D{(determineHistName(file_path) + "_1D").c_str(),
+               (determineHistName(file_path) + "_1D").c_str(),
+               10, ppt_bins} {
+  file_path_ = file_path;
 }
 
 void SystHist1D::setMCHists(std::vector<std::string>* hists) {
@@ -135,17 +144,13 @@ void SystHist1D::fillFromRatios() {
 }
 
 SystHist3D::SystHist3D(const std::string& file_path)
-  : file_path_(file_path) {
-  std::string hist_name{};
-  if (file_path_.find("dilepton") != std::string::npos) {
-    hist_name = "hist_ppt_prompt_3D";
-  } else {
-    hist_name = "hist_ppt_fake_3D";
-  }
-  const float pt_bins[6] = {0, 27000, 35000, 50000, 80000, 1000000};
-  const float eta_bins[5] = {0, 0.6, 1.37, 1.52, 2.37};
-  const float ppt_bins[11] = {0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
-  SystHist3D{hist_name.c_str(), hist_name.c_str(), 4, eta_bins, 5, pt_bins, 10, ppt_bins};
+  : SystHist3D{(determineHistName(file_path) + "_3D").c_str(),
+               (determineHistName(file_path) + "_3D").c_str(),
+               4, eta_bins,
+               5, pt_bins,
+               10, ppt_bins} {
+  file_path_ = file_path;
+  this->SetDirectory(0);
 }
 
 void SystHist3D::setMCHists(std::vector<std::string>* hists) {
