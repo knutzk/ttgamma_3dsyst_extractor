@@ -5,9 +5,14 @@
 
 const size_t expected_args{1};
 
+struct InputOutputOpts {
+  std::string input;
+  std::string output;
+};
+
 struct ProgOpts {
   std::string prog_name;
-  std::string input_file_str;
+  InputOutputOpts io;
 };
 
 ProgOpts getProgOptions(int argc, char* argv[]);

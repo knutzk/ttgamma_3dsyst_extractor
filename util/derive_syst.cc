@@ -11,7 +11,7 @@
 
 int main(int argc, char* argv[]) {
   auto opts{getProgOptions(argc, argv)};
-  const auto& base_name{opts.input_file_str};
+  const auto& base_name{opts.io.input};
 
   std::vector<std::string> eta_slice_strings;
   eta_slice_strings.emplace_back("eta0006");
@@ -34,7 +34,7 @@ int main(int argc, char* argv[]) {
   mc_hists.emplace_back("Wphoton");
   mc_hists.emplace_back("Other");
 
-  auto output_file = TFile::Open("output.root", "RECREATE");
+  auto output_file = TFile::Open(opts.io.output.c_str(), "RECREATE");
 
   // Fill the 1D histogram for systs.
   auto h_1D = prepare1DHist(base_name, &mc_hists);

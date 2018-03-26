@@ -9,7 +9,7 @@ ProgOpts getProgOptions(int argc, char* argv[]) {
     throw std::invalid_argument("program options incomplete");
   }
 
-  return ProgOpts{argv[0], argv[1]};
+  return ProgOpts{argv[0], InputOutputOpts{argv[1], "output.root"}};
 }
 
 std::string printUsage() {
