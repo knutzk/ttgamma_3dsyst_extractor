@@ -1,3 +1,4 @@
+#include "util/prog_opts.hh"
 #include "util/output_hists.hh"
 
 #include <iostream>
@@ -9,15 +10,8 @@
 
 
 int main(int argc, char* argv[]) {
-  // We expect one additional argument to the program, otherwise exit with
-  // error. This one argument will be the base name for our sliced histograms
-  // (i.e. the histogram that is not sliced).
-  if (argc != 2) {
-    std::cerr << "Incorrect arguments" << std::endl;
-    std::cerr << "Usage: " << argv[0] << " [input file]" << std::endl;
-    return 1;
-  }
-  const std::string base_name{argv[1]};
+  auto opts{getProgOptions(argc, argv)};
+  const auto& base_name{opts.input_file_str};
 
   std::vector<std::string> eta_slice_strings;
   eta_slice_strings.emplace_back("eta0006");
