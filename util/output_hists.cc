@@ -15,6 +15,16 @@ const float pt_bins[6] = {0, 27000, 35000, 50000, 80000, 1000000};
 const float eta_bins[5] = {0, 0.6, 1.37, 1.52, 2.37};
 const float ppt_bins[11] = {0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
 
+//! Get a stripped version of a file name.
+auto get_stripped_file_name(const std::string& path) {
+  auto pos = path.rfind("/");
+  if (pos == std::string::npos) {
+    return path;
+  } else {
+    return path.substr(pos, path.length() - pos);
+  }
+}
+
 //! Seach for a substring in a given string and return the
 //! position _after_ the substring.
 auto get_pos_after_string(const std::string& s, const std::string& sub) {
@@ -27,8 +37,8 @@ auto get_pos_after_string(const std::string& s, const std::string& sub) {
 //! name. This looks for the correct position to insert them and
 //! returns the newly composed string.
 auto insert_slice_strings(const std::string& str, const std::string& eta, const std::string& pt) {
-  auto pos = str.find("HFT_MVA_") + 8;
-  if (pos == std::string::npos) throw std::invalid_argument("");
+  auto pos = get_pos_after_string(str, "HFT_MVA_");
+  if (pos == std::string::npos) throw std::invalid_argument("could not insert slice strings");
   std::ostringstream ss;
   ss << str.substr(0, pos) << eta << "_" << pt << "_";
   ss << str.substr(pos, str.length() - pos);
@@ -41,17 +51,15 @@ auto insert_slice_strings(const std::string& str, const std::string& eta, const 
 std::string create_hist_string(const std::string& str) {
   // First remove everything before the string "ph_HFT_MVA".
   auto pos = str.find("ph_HFT_MVA_");
-  if (pos == std::string::npos) throw std::invalid_argument("");
+  if (pos == std::string::npos) throw std::invalid_argument("could not create hist string from " + str);
   auto sub = str.substr(pos, str.length() - pos);
 
   // The cut away everything after the channel name.
-  pos = get_pos_after_string(sub, "dilepton_ppt_");
+  pos = get_pos_after_string(sub, "dilepton_ppt");
   // Try with "singlelepton" if "dilepton" failed.
-  if (pos == std::string::npos) pos = get_pos_after_string(sub, "singlelepton_ppt_");
+  if (pos == std::string::npos) pos = get_pos_after_string(sub, "singlelepton_ppt");
   if (pos == std::string::npos) {
-    std::cerr << "Could not create histogram string ";
-    std::cerr << "based on "<< str << std::endl;
-    throw std::invalid_argument("");
+    throw std::invalid_argument("creating histogram string failed");
   }
   return sub.substr(0, pos);
 }
@@ -69,13 +77,13 @@ std::string det_output_hist_string(const std::string& file_path) {
 //! Get a histogram from a file. Throw an exception otherwise.
 auto get_hist(TFile* file, const std::string& hist_string) {
   auto h = static_cast<TH1F*>(file->Get(hist_string.c_str()));
-  if (!h) throw std::invalid_argument("histogram not found");
+  if (!h) throw std::invalid_argument("histogram not found: " + hist_string);
   return h;
 }
 
 //! Get a copy of the data histogram from a TFile.
 auto get_data_hist(TFile* file, const std::string& hist_string) {
-  auto && h = static_cast<TH1F*>(get_hist(file, hist_string + "Data")->Clone());
+  auto && h = static_cast<TH1F*>(get_hist(file, hist_string + "_Data")->Clone());
   h->SetDirectory(0);
   return std::unique_ptr<TH1F>{h};
 }
@@ -85,13 +93,13 @@ auto get_data_hist(TFile* file, const std::string& hist_string) {
 //! all others smoothly. Non existing histograms will be removed
 //! from the string container.
 auto get_mc_hist_stack(TFile* file, const std::string& hist_string, std::vector<std::string>* mc_hists) {
-  auto && h{get_hist(file, hist_string + mc_hists->front())};
+  auto && h{get_hist(file, hist_string + "_" + mc_hists->front())};
   for (auto itr = mc_hists->begin() + 1; itr != mc_hists->end(); ++itr) {
     try {
-      h->Add(get_hist(file, hist_string + *itr));
+      h->Add(get_hist(file, hist_string + "_" + *itr));
     } catch (std::invalid_argument) {
-      std::cerr << "Could not retrieve MC histogram for \"" << *itr;
-      std::cerr << "\". Removing it from the list of histograms" << std::endl;
+      std::cout << "WARNING: Could not retrieve MC histogram for \"" << *itr;
+      std::cout << "\". Removing it from the list of histograms" << std::endl;
       mc_hists->erase(itr);
     }
   }
@@ -126,20 +134,11 @@ void SystHist1D::setMCHists(std::vector<std::string>* hists) {
 }
 
 void SystHist1D::fillFromRatios() {
-  std::cout << "Opening file " << file_path_ << std::endl;
+  std::cout << "Opening file " << get_stripped_file_name(file_path_) << std::endl;
   auto file = TFile::Open(file_path_.c_str(), "READ");
   if (!file) return;
 
-  // Try creating the data/MC ratio from the opened file. If
-  // anything goes wrong and histograms cannot be found, exit
-  // gracefully.
-  std::unique_ptr<TH1F> data_mc_ratio;
-  try {
-    data_mc_ratio = prepare_data_mc_ratio(file, create_hist_string(file_path_), mc_hists_);
-  } catch (std::invalid_argument) {
-    std::cerr << "Retrieving histograms failed ..." << std::endl;
-    return;
-  }
+  auto && data_mc_ratio{prepare_data_mc_ratio(file, create_hist_string(file_path_), mc_hists_)};
   for (int x = 1; x <= data_mc_ratio->GetNbinsX(); ++x) {
     this->SetBinContent(x, data_mc_ratio->GetBinContent(x));
     this->SetBinError(x, data_mc_ratio->GetBinError(x));
@@ -179,20 +178,11 @@ void SystHist3D::fillFromRatios() {
       if (eta_index == 2) continue;
 
       auto file_string = insert_slice_strings(file_path_, eta_slice, pt_slice);
-      std::cout << "Opening file " << file_string << std::endl;
+      std::cout << "Opening file " << get_stripped_file_name(file_string) << std::endl;
       auto file = TFile::Open(file_string.c_str(), "READ");
-      if (!file) throw;
+      if (!file) throw std::invalid_argument("file does not exist");
 
-      // Try creating the data/MC ratio from the opened file. If
-      // anything goes wrong and histograms cannot be found, exit
-      // gracefully.
-      std::unique_ptr<TH1F> data_mc_ratio;
-      try {
-        data_mc_ratio = prepare_data_mc_ratio(file, create_hist_string(file_string), mc_hists_);
-      } catch (std::invalid_argument) {
-        std::cerr << "Retrieving histograms failed ..." << std::endl;
-        throw;
-      }
+      auto && data_mc_ratio{prepare_data_mc_ratio(file, create_hist_string(file_string), mc_hists_)};
 
       // Now switch to the output file, retrieve the histogram
       // bin contents and store them in the TH3F object that will

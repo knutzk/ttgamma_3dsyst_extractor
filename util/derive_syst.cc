@@ -37,14 +37,24 @@ int main(int argc, char* argv[]) {
   // Fill the 1D histogram for systs.
   auto h_1D = std::make_unique<SystHist1D>(base_name);
   h_1D->setMCHists(&mc_hists);
-  h_1D->fillFromRatios();
+  try {
+    h_1D->fillFromRatios();
+  } catch (const std::invalid_argument& exc) {
+    std::cerr << "Creating 1D histogram failed: " << exc.what() << std::endl;
+    return 1;
+  }
 
   // Fill the 3D histogram for systs.
   auto h_3D = std::make_unique<SystHist3D>(base_name);
   h_3D->setMCHists(&mc_hists);
   h_3D->setEtaSlices(&eta_slice_strings);
   h_3D->setPtSlices(&pt_slice_strings);
-  h_3D->fillFromRatios();
+  try {
+    h_3D->fillFromRatios();
+  } catch (const std::invalid_argument& exc) {
+    std::cerr << "Creating 3D histogram failed: " << exc.what() << std::endl;
+    return 1;
+  }
 
   // Open the output file, write the two histograms and close it.
   auto output_file = TFile::Open(opts.io.output.c_str(), "RECREATE");
