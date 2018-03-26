@@ -11,7 +11,10 @@
 class TFile;
 
 class SystHist1D : public TH1F {
-public:
+ public:
+  //! Inherit all constructors from the base class.
+  using TH1F::TH1F;
+
   //! Initialise the 1D systematic histogram, with the path to
   //! the input file as input parameter.
   SystHist1D(const std::string& file_path);
@@ -27,7 +30,7 @@ public:
   //! histogram based on that ratio.
   void fillFromRatios();
 
-private:
+ private:
   //! Path to the input file.
   std::string file_path_;
 

@@ -41,6 +41,9 @@ int main(int argc, char* argv[]) {
   h_1D->setMCHists(&mc_hists);
   h_1D->fillFromRatios();
 
+  output_file->cd();
+  h_1D->Write();
+
   // Fill the 3D histogram for systs.
   auto h_3D = std::make_unique<SystHist3D>(base_name);
   h_3D->setMCHists(&mc_hists);
@@ -48,6 +51,8 @@ int main(int argc, char* argv[]) {
   h_3D->setPtSlices(&pt_slice_strings);
   h_3D->fillFromRatios();
 
+  output_file->cd();
+  h_3D->Write();
   output_file->Write();
 
   // Example

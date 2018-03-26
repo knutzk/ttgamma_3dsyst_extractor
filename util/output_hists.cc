@@ -103,7 +103,7 @@ SystHist1D::SystHist1D(const std::string& file_path)
   }
 
   const float ppt_bins[11] = {0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
-  TH1F{hist_name.c_str(), hist_name.c_str(), 10, ppt_bins};
+  SystHist1D{hist_name.c_str(), hist_name.c_str(), 10, ppt_bins};
 }
 
 void SystHist1D::setMCHists(std::vector<std::string>* hists) {
