@@ -15,16 +15,14 @@ const float pt_bins[6] = {0, 27000, 35000, 50000, 80000, 1000000};
 const float eta_bins[5] = {0, 0.6, 1.37, 1.52, 2.37};
 const float ppt_bins[11] = {0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
 
-//! Append the slice strings for eta and pt to a given basic file
-//! name, i.e. insert the slice suffixes in the correct position.
-std::string appendSliceStrings(const std::string& str,
-                               const std::string& eta_slice_string,
-                               const std::string& pt_slice_string) {
+//! Insert the slice strings for eta and pt to a given basic file
+//! name. This looks for the correct position to insert them and
+//! returns the newly composed string.
+auto insert_slice_strings(const std::string& str, const std::string& eta, const std::string& pt) {
   auto pos = str.find("HFT_MVA_") + 8;
   if (pos == std::string::npos) throw std::invalid_argument("");
   std::ostringstream ss;
-  ss << str.substr(0, pos) << eta_slice_string;
-  ss << "_" << pt_slice_string << "_";
+  ss << str.substr(0, pos) << eta << "_" << pt << "_";
   ss << str.substr(pos, str.length() - pos);
   return ss.str();
 }
@@ -175,7 +173,7 @@ void SystHist3D::fillFromRatios() {
       // Skip eta slice 3 which is the ecal crack region.
       if (eta_index == 2) continue;
 
-      auto file_string = appendSliceStrings(file_path_, eta_slice, pt_slice);
+      auto file_string = insert_slice_string(file_path_, eta_slice, pt_slice);
       std::cout << "Opening file " << file_string << std::endl;
       auto file = TFile::Open(file_string.c_str(), "READ");
       if (!file) throw;
